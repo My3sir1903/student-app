@@ -17,6 +17,12 @@ import { SUBJECT_COLORS } from "@/src/store/defaults";
 import { useApp } from "@/src/store/AppContext";
 import { colors, fonts, fontSize, radius, spacing } from "@/src/theme";
 import { Subject } from "@/src/types";
+import { formatDuration } from "@/src/utils/time";
+
+const WEEKLY_GOAL_OPTIONS = [0, 60, 120, 180, 300, 420, 600];
+function goalLabel(m: number): string {
+  return m === 0 ? "No goal" : formatDuration(m);
+}
 
 export default function SubjectsScreen() {
   const insets = useSafeAreaInsets();
@@ -27,11 +33,13 @@ export default function SubjectsScreen() {
   const [editing, setEditing] = useState<Subject | null>(null);
   const [name, setName] = useState("");
   const [color, setColor] = useState(SUBJECT_COLORS[0]);
+  const [weeklyGoal, setWeeklyGoal] = useState(0);
 
   const openNew = () => {
     setEditing(null);
     setName("");
     setColor(SUBJECT_COLORS[0]);
+    setWeeklyGoal(0);
     setSheetOpen(true);
   };
 
@@ -39,13 +47,14 @@ export default function SubjectsScreen() {
     setEditing(s);
     setName(s.name);
     setColor(s.color);
+    setWeeklyGoal(s.weeklyGoalMinutes ?? 0);
     setSheetOpen(true);
   };
 
   const submit = () => {
     if (!name.trim()) return;
-    if (editing) updateSubject(editing.id, name, color);
-    else addSubject(name, color);
+    if (editing) updateSubject(editing.id, name, color, weeklyGoal);
+    else addSubject(name, color, weeklyGoal);
     setSheetOpen(false);
   };
 
@@ -74,7 +83,12 @@ export default function SubjectsScreen() {
             testID={`subject-row-${s.id}`}
           >
             <View style={[styles.subjectDot, { backgroundColor: s.color }]} />
-            <Text style={styles.subjectName}>{s.name}</Text>
+            <View style={styles.subjectInfo}>
+              <Text style={styles.subjectName}>{s.name}</Text>
+              {s.weeklyGoalMinutes ? (
+                <Text style={styles.subjectGoal}>{formatDuration(s.weeklyGoalMinutes)} / week</Text>
+              ) : null}
+            </View>
             <Ionicons name="pencil" size={18} color={colors.onSurfaceTertiary} />
           </Pressable>
         ))}
@@ -116,6 +130,30 @@ export default function SubjectsScreen() {
             </Pressable>
           ))}
         </View>
+
+        <Text style={styles.fieldLabel}>WEEKLY STUDY GOAL</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.goalRow}
+          style={{ flexGrow: 0 }}
+        >
+          {WEEKLY_GOAL_OPTIONS.map((m) => {
+            const active = weeklyGoal === m;
+            return (
+              <Pressable
+                key={m}
+                onPress={() => setWeeklyGoal(m)}
+                style={[styles.goalChip, active && styles.goalChipActive]}
+                testID={`weekly-goal-${m}`}
+              >
+                <Text style={[styles.goalChipText, active && styles.goalChipTextActive]}>
+                  {goalLabel(m)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
         <PrimaryButton
           label={editing ? "Save Changes" : "Add Subject"}
@@ -164,7 +202,14 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   subjectDot: { width: 14, height: 14, borderRadius: 7 },
-  subjectName: { flex: 1, fontFamily: fonts.text.semibold, fontSize: fontSize.lg, color: colors.onSurface },
+  subjectInfo: { flex: 1 },
+  subjectName: { fontFamily: fonts.text.semibold, fontSize: fontSize.lg, color: colors.onSurface },
+  subjectGoal: {
+    fontFamily: fonts.text.medium,
+    fontSize: fontSize.sm,
+    color: colors.brandPrimary,
+    marginTop: 2,
+  },
   fab: {
     position: "absolute",
     right: spacing.lg,
@@ -206,4 +251,19 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   colorDotActive: { borderColor: colors.onSurface },
+  goalRow: { gap: spacing.sm, paddingVertical: spacing.xs },
+  goalChip: {
+    height: 40,
+    flexShrink: 0,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  goalChipActive: { borderColor: colors.brandPrimary, backgroundColor: colors.brandTertiary },
+  goalChipText: { fontFamily: fonts.text.semibold, fontSize: fontSize.base, color: colors.onSurfaceTertiary },
+  goalChipTextActive: { color: colors.onSurface },
 });

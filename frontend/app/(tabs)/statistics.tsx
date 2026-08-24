@@ -12,7 +12,7 @@ import { formatDuration } from "@/src/utils/time";
 type Tab = "metrics" | "achievements";
 
 export default function StatisticsScreen() {
-  const { stats, profile } = useApp();
+  const { stats, profile, subjects } = useApp();
   const [tab, setTab] = useState<Tab>("metrics");
 
   const screenWidth = Dimensions.get("window").width;
@@ -25,6 +25,8 @@ export default function StatisticsScreen() {
     frontColor: w.value > 0 ? colors.brandPrimary : colors.surfaceTertiary,
   }));
   const totalBySubject = stats.bySubject.reduce((a, b) => a + b.minutes, 0);
+  const goalSubjects = subjects.filter((s) => (s.weeklyGoalMinutes ?? 0) > 0);
+  const insights = stats.insights;
 
   return (
     <View style={styles.root}>
@@ -64,6 +66,119 @@ export default function StatisticsScreen() {
               <SummaryCard icon="checkmark-done" color="#C15C8A" value={`${stats.completedTasksTotal}`} label="Tasks Done" />
               <SummaryCard icon="school" color="#6C7BC4" value={`${stats.level}`} label="Level" />
             </View>
+
+            {/* Focus Insights recap */}
+            <View style={styles.card} testID="focus-insights-card">
+              <View style={styles.insightHeader}>
+                <Ionicons name="sparkles" size={18} color={colors.brandPrimary} />
+                <Text style={styles.cardTitle}>Focus Insights</Text>
+              </View>
+              {insights.thisWeekMinutes === 0 ? (
+                <Text style={styles.emptyText}>
+                  Study this week to unlock your personalised recap.
+                </Text>
+              ) : (
+                <View style={styles.insightBody}>
+                  <View style={styles.insightRow}>
+                    <View style={[styles.insightIcon, { backgroundColor: "rgba(217,119,54,0.14)" }]}>
+                      <Ionicons name="trending-up" size={18} color={colors.brandPrimary} />
+                    </View>
+                    <View style={styles.insightText}>
+                      <Text style={styles.insightLabel}>Weekly trend</Text>
+                      <Text style={styles.insightValue}>
+                        {insights.trendPct === null
+                          ? `${formatDuration(insights.thisWeekMinutes)} — your first week!`
+                          : `${insights.trendPct >= 0 ? "+" : ""}${insights.trendPct}% vs last week`}
+                      </Text>
+                    </View>
+                    {insights.trendPct !== null ? (
+                      <Ionicons
+                        name={insights.trendPct >= 0 ? "arrow-up" : "arrow-down"}
+                        size={18}
+                        color={insights.trendPct >= 0 ? colors.success : colors.error}
+                      />
+                    ) : null}
+                  </View>
+
+                  {insights.bestDayLabel ? (
+                    <View style={styles.insightRow}>
+                      <View style={[styles.insightIcon, { backgroundColor: "rgba(79,134,198,0.16)" }]}>
+                        <Ionicons name="star" size={18} color="#4F86C6" />
+                      </View>
+                      <View style={styles.insightText}>
+                        <Text style={styles.insightLabel}>Best day</Text>
+                        <Text style={styles.insightValue}>
+                          {insights.bestDayLabel} · {formatDuration(insights.bestDayMinutes)}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {insights.favouriteSubject ? (
+                    <View style={styles.insightRow}>
+                      <View
+                        style={[
+                          styles.insightIcon,
+                          { backgroundColor: `${insights.favouriteSubject.color}22` },
+                        ]}
+                      >
+                        <Ionicons name="heart" size={18} color={insights.favouriteSubject.color} />
+                      </View>
+                      <View style={styles.insightText}>
+                        <Text style={styles.insightLabel}>Favourite subject</Text>
+                        <Text style={styles.insightValue}>
+                          {insights.favouriteSubject.name} ·{" "}
+                          {formatDuration(insights.favouriteSubject.minutes)}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+            </View>
+
+            {/* Weekly subject goals */}
+            {goalSubjects.length > 0 ? (
+              <View style={styles.card} testID="weekly-goals-card">
+                <Text style={styles.cardTitle}>Weekly Subject Goals</Text>
+                <Text style={styles.cardSub}>Progress toward this week&apos;s targets</Text>
+                <View style={{ marginTop: spacing.md, gap: spacing.lg }}>
+                  {goalSubjects.map((s) => {
+                    const goal = s.weeklyGoalMinutes ?? 0;
+                    const done = stats.weeklyBySubjectId[s.id] ?? 0;
+                    const pct = goal > 0 ? Math.min(1, done / goal) : 0;
+                    const reached = done >= goal;
+                    return (
+                      <View key={s.id} testID={`weekly-goal-${s.id}`}>
+                        <View style={styles.breakRow}>
+                          <View style={styles.breakLabelRow}>
+                            <View style={[styles.breakDot, { backgroundColor: s.color }]} />
+                            <Text style={styles.breakName}>{s.name}</Text>
+                            {reached ? (
+                              <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                            ) : null}
+                          </View>
+                          <Text style={styles.breakValue}>
+                            {formatDuration(done)} / {formatDuration(goal)}
+                          </Text>
+                        </View>
+                        <View style={styles.breakTrack}>
+                          <View
+                            style={[
+                              styles.breakFill,
+                              {
+                                width: `${pct * 100}%`,
+                                backgroundColor: reached ? colors.success : s.color,
+                              },
+                            ]}
+                          />
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
 
             {/* Weekly chart */}
             <View style={styles.card} testID="weekly-chart-card">
@@ -229,6 +344,19 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontFamily: fonts.display.semibold, fontSize: fontSize.xl, color: colors.onSurface, letterSpacing: 0.3 },
   cardSub: { fontFamily: fonts.text.regular, fontSize: fontSize.sm, color: colors.onSurfaceTertiary, marginTop: 2 },
+  insightHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  insightBody: { marginTop: spacing.md, gap: spacing.md },
+  insightRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  insightIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  insightText: { flex: 1 },
+  insightLabel: { fontFamily: fonts.text.medium, fontSize: fontSize.sm, color: colors.onSurfaceTertiary },
+  insightValue: { fontFamily: fonts.text.bold, fontSize: fontSize.base, color: colors.onSurface, marginTop: 1 },
   axisText: { color: colors.onSurfaceTertiary, fontFamily: fonts.text.medium, fontSize: 11 },
   emptyText: { fontFamily: fonts.text.regular, fontSize: fontSize.base, color: colors.onSurfaceTertiary, marginTop: spacing.md },
 

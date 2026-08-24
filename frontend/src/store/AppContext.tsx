@@ -38,6 +38,15 @@ interface Stats {
   xpForLevel: number;
   bySubject: { subjectId: string | null; name: string; color: string; minutes: number }[];
   weekly: { label: string; value: number }[];
+  weeklyBySubjectId: Record<string, number>;
+  insights: {
+    bestDayLabel: string | null;
+    bestDayMinutes: number;
+    favouriteSubject: { name: string; color: string; minutes: number } | null;
+    thisWeekMinutes: number;
+    lastWeekMinutes: number;
+    trendPct: number | null; // null when there is no prior-week data
+  };
 }
 
 interface AppContextValue {
@@ -47,15 +56,17 @@ interface AppContextValue {
   profile: Profile;
   stats: Stats;
   // subjects
-  addSubject: (name: string, color: string) => void;
-  updateSubject: (id: string, name: string, color: string) => void;
+  addSubject: (name: string, color: string, weeklyGoalMinutes?: number) => void;
+  updateSubject: (id: string, name: string, color: string, weeklyGoalMinutes?: number) => void;
   deleteSubject: (id: string) => void;
+  setSubjectWeeklyGoal: (id: string, minutes: number) => void;
   // tasks
   addTask: (title: string, subjectId: string | null, dueDate: string | null) => void;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
   // sessions
   addSession: (subjectId: string | null, durationMinutes: number) => void;
+  deleteSession: (id: string) => void;
   // profile
   setDailyGoal: (minutes: number) => void;
   resetAllData: () => void;
@@ -123,22 +134,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const stats = useMemo<Stats>(() => {
     const today = todayKey();
     const weekStart = dayjs().subtract(6, "day").startOf("day");
+    const lastWeekStart = dayjs().subtract(13, "day").startOf("day");
 
     let todayMinutes = 0;
     let weekMinutes = 0;
+    let lastWeekMinutes = 0;
     let totalMinutes = 0;
     let sessionsToday = 0;
     const subjMap = new Map<string | null, number>();
+    const weeklySubjMap = new Map<string | null, number>();
 
     for (const s of sessions) {
       totalMinutes += s.durationMinutes;
       const d = dayjs(s.startedAt);
+      const dStart = d.startOf("day");
       if (d.format("YYYY-MM-DD") === today) {
         todayMinutes += s.durationMinutes;
         sessionsToday += 1;
       }
-      if (!d.startOf("day").isBefore(weekStart)) {
+      if (!dStart.isBefore(weekStart)) {
         weekMinutes += s.durationMinutes;
+        weeklySubjMap.set(s.subjectId, (weeklySubjMap.get(s.subjectId) ?? 0) + s.durationMinutes);
+      } else if (!dStart.isBefore(lastWeekStart)) {
+        lastWeekMinutes += s.durationMinutes;
       }
       subjMap.set(s.subjectId, (subjMap.get(s.subjectId) ?? 0) + s.durationMinutes);
     }
@@ -170,6 +188,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .sort((a, b) => b.minutes - a.minutes);
 
     const weekly: { label: string; value: number }[] = [];
+    let bestDayMinutes = 0;
+    let bestDayLabel: string | null = null;
     for (let i = 6; i >= 0; i -= 1) {
       const d = dayjs().subtract(i, "day");
       const key = d.format("YYYY-MM-DD");
@@ -177,7 +197,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .filter((s) => dayjs(s.startedAt).format("YYYY-MM-DD") === key)
         .reduce((acc, s) => acc + s.durationMinutes, 0);
       weekly.push({ label: d.format("dd").charAt(0), value: mins });
+      if (mins > bestDayMinutes) {
+        bestDayMinutes = mins;
+        bestDayLabel = d.format("dddd");
+      }
     }
+
+    const weeklyBySubjectId: Record<string, number> = {};
+    weeklySubjMap.forEach((minutes, subjectId) => {
+      weeklyBySubjectId[subjectId ?? "none"] = minutes;
+    });
+
+    let favouriteSubject: Stats["insights"]["favouriteSubject"] = null;
+    let favMinutes = 0;
+    weeklySubjMap.forEach((minutes, subjectId) => {
+      if (minutes > favMinutes) {
+        favMinutes = minutes;
+        const subj = subjects.find((x) => x.id === subjectId);
+        favouriteSubject = {
+          name: subj?.name ?? "General",
+          color: subj?.color ?? colors.onSurfaceTertiary,
+          minutes,
+        };
+      }
+    });
+
+    const trendPct =
+      lastWeekMinutes > 0
+        ? Math.round(((weekMinutes - lastWeekMinutes) / lastWeekMinutes) * 100)
+        : null;
 
     return {
       todayMinutes,
@@ -193,6 +241,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       xpForLevel: LEVEL_STEP,
       bySubject,
       weekly,
+      weeklyBySubjectId,
+      insights: {
+        bestDayLabel,
+        bestDayMinutes,
+        favouriteSubject,
+        thisWeekMinutes: weekMinutes,
+        lastWeekMinutes,
+        trendPct,
+      },
     };
   }, [sessions, tasks, profile, subjects]);
 
@@ -243,12 +300,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       stats,
       subjectById,
 
-      addSubject: (name, color) =>
-        setSubjects((prev) => [...prev, { id: genId("subj"), name: name.trim(), color }]),
+      addSubject: (name, color, weeklyGoalMinutes = 0) =>
+        setSubjects((prev) => [
+          ...prev,
+          { id: genId("subj"), name: name.trim(), color, weeklyGoalMinutes },
+        ]),
 
-      updateSubject: (id, name, color) =>
+      updateSubject: (id, name, color, weeklyGoalMinutes) =>
         setSubjects((prev) =>
-          prev.map((s) => (s.id === id ? { ...s, name: name.trim(), color } : s)),
+          prev.map((s) =>
+            s.id === id
+              ? {
+                  ...s,
+                  name: name.trim(),
+                  color,
+                  weeklyGoalMinutes:
+                    weeklyGoalMinutes === undefined ? s.weeklyGoalMinutes : weeklyGoalMinutes,
+                }
+              : s,
+          ),
+        ),
+
+      setSubjectWeeklyGoal: (id, minutes) =>
+        setSubjects((prev) =>
+          prev.map((s) => (s.id === id ? { ...s, weeklyGoalMinutes: minutes } : s)),
         ),
 
       deleteSubject: (id) => {
@@ -296,6 +371,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ),
 
       deleteTask: (id) => setTasks((prev) => prev.filter((t) => t.id !== id)),
+
+      deleteSession: (id) => {
+        setSessions((prev) => {
+          const target = prev.find((s) => s.id === id);
+          if (target) {
+            setProfile((p) => ({
+              ...p,
+              xp: Math.max(0, p.xp - target.durationMinutes * XP_PER_STUDY_MINUTE),
+            }));
+          }
+          return prev.filter((s) => s.id !== id);
+        });
+      },
 
       addSession: (subjectId, durationMinutes) => {
         const now = dayjs();

@@ -42,6 +42,15 @@ export default function SettingsScreen() {
           />
         </Section>
 
+        <Section title="ACTIVITY">
+          <Row
+            icon="time"
+            label="Session History"
+            onPress={() => router.push("/history")}
+            testID="row-session-history"
+          />
+        </Section>
+
         <Section title="DATA">
           <Row
             icon="trash"

@@ -2,6 +2,7 @@ export interface Subject {
   id: string;
   name: string;
   color: string;
+  weeklyGoalMinutes?: number; // 0 or undefined = no weekly goal set
 }
 
 export interface Task {
