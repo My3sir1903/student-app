@@ -1,0 +1,168 @@
+{
+  "app_name": "StudyFlow",
+  "personality": "7 Dark-First Utility",
+  "personality_one_liner": "A high-performance, command-center interface designed for deep focus and academic tracking, using sharp typography and a warm rust accent to communicate effort and progress.",
+  "color": {
+    "surface": "#0F1115",
+    "onSurface": "#F3F4F6",
+    "surfaceSecondary": "#1A1D24",
+    "onSurfaceSecondary": "#D1D5DB",
+    "surfaceTertiary": "#252932",
+    "onSurfaceTertiary": "#9CA3AF",
+    "surfaceInverse": "#F3F4F6",
+    "onSurfaceInverse": "#0F1115",
+    "brand": "#D97736",
+    "brandPrimary": "#D97736",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#B55D25",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "rgba(217, 119, 54, 0.12)",
+    "onBrandTertiary": "#E08B53",
+    "success": "#10B981",
+    "onSuccess": "#FFFFFF",
+    "warning": "#F59E0B",
+    "onWarning": "#000000",
+    "error": "#F43F5E",
+    "onError": "#FFFFFF",
+    "border": "#2E333D",
+    "borderStrong": "#4B5563",
+    "divider": "#2E333D"
+  },
+  "typography": {
+    "displayFontFamily": "Barlow Condensed",
+    "textFontFamily": "Manrope",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24,
+      "3xl": 32,
+      "4xl": 48,
+      "5xl": 64
+    }
+  },
+  "spacing": {
+    "rule": "Use tight, utility-driven spacing. Ensure high visual density without feeling cramped by leaning on consistent 4px/8px baselines.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 10,
+    "lg": 16,
+    "pill": 999
+  },
+  "shadow_tier": 0,
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": false,
+    "do's": [
+      "Use solid surfaceSecondary and surfaceTertiary for elevation.",
+      "Use border separators for hierarchy instead of shadows or blur."
+    ],
+    "dont's": [
+      "Do not use glass or blur effects; keep the interface sharp and operational."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-blur",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler",
+    "charts": "react-native-gifted-charts"
+  },
+  "screens": [
+    {
+      "name": "Home",
+      "purpose": "A command-center dashboard showing today's study progress, daily goals, XP/level, and quick access to start studying.",
+      "states": {
+        "loading": "Skeleton UI for metric cards",
+        "empty": "No data yet—prompt user to start their first study session.",
+        "error": "Failed to load dashboard data. [Retry]"
+      },
+      "layout": "Use a stacked card layout. Top section features a textured background with the user's Level and XP progress bar. Below that, a prominent circular progress ring for the daily goal (e.g., 2h / 4h studied). Follow with a 2-column grid for 'Current Streak' and 'Completed Tasks' metric cards. Pin a sticky 'Start Studying' CTA at the bottom using brandPrimary."
+    },
+    {
+      "name": "Tasks",
+      "purpose": "Manage study tasks with due dates and subject tags, awarding XP upon completion.",
+      "states": {
+        "loading": "Skeleton list rows",
+        "empty": "Illustration of a clean minimal desk workspace. 'No tasks due. Take a break or add a new task!'",
+        "error": "Failed to load tasks. [Retry]"
+      },
+      "layout": "List view. Each row uses surfaceSecondary with left-aligned checkboxes (circular). Include subject chips (brandTertiary tinted) and due dates (condensed text). Provide a floating action button (FAB) for adding tasks."
+    },
+    {
+      "name": "Timer",
+      "purpose": "A focused, distraction-free Pomodoro timer interface.",
+      "states": {
+        "loading": "Timer loading state",
+        "empty": "N/A - Always shows timer setup",
+        "error": "Failed to start session. [Retry]"
+      },
+      "layout": "Full-screen utility layout. Center a massive circular countdown timer using the Barlow Condensed display font (oversized, e.g., 64pt+). Below the timer, include segmented controls or pills for presets (25/5, 50/10, Custom). Above the timer, a dropdown/selector for the 'Subject'. Large, tactile Play/Pause buttons at the bottom."
+    },
+    {
+      "name": "Statistics",
+      "purpose": "Visualize academic productivity through charts and gamification achievements.",
+      "states": {
+        "loading": "Skeleton charts",
+        "empty": "No study data recorded yet.",
+        "error": "Failed to load stats. [Retry]"
+      },
+      "layout": "Segmented into 'Metrics' and 'Achievements'. Metrics features a weekly bar chart (using react-native-gifted-charts with brandPrimary bars on surfaceSecondary) and a subject breakdown (pie chart or list). Achievements displays a grid of badges (tinted containers for unlocked, muted opacity for locked)."
+    },
+    {
+      "name": "Settings",
+      "purpose": "Manage app preferences, daily goals, and custom subjects.",
+      "states": {
+        "loading": "N/A",
+        "empty": "N/A",
+        "error": "N/A"
+      },
+      "layout": "Standard list layout with right-aligned chevrons or toggles. Group settings into 'Preferences' (Daily Goal, Notification), 'Subjects' (Manage list), and 'Data'. Use surfaceSecondary for list rows."
+    }
+  ],
+  "images": {
+    "home_header_bg": {
+      "url": "https://images.unsplash.com/photo-1578662996442-48f60103fc96?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAxODF8MHwxfHNlYXJjaHwyfHxkYXJrJTIwbWluaW1hbCUyMGdyYXBoaXRlJTIwdGV4dHVyZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzg3NTc2NTIzfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Dark textured graphite background"
+    },
+    "tasks_empty_state": {
+      "url": "https://images.pexels.com/photos/13722865/pexels-photo-13722865.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "alt": "Modern minimal dark desk workspace"
+    }
+  },
+  "haptics": {
+    "timer_start": "impactMedium",
+    "timer_pause": "impactLight",
+    "timer_complete": "notificationSuccess",
+    "task_complete": "notificationSuccess",
+    "preset_select": "selection",
+    "button_press": "impactLight"
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the Dark-First Utility (Personality 7) rules. The interface must feel like a live operational surface, prioritizing scannability and contrast.",
+    "Do NOT use glassmorphism or blur effects. Use solid borders and tonal separation (surfaceSecondary, surfaceTertiary) to create hierarchy.",
+    "Use Barlow Condensed for large numbers (Timer countdown, XP, Level, Stat numbers) and Manrope for all general UI reading.",
+    "Ensure the Pomodoro Timer screen features a large, oversized circular progress indicator and massive numbers (minimum 64pt).",
+    "Implement gamification cleanly: XP bars and levels should feel like performance metrics, not childish toys. Avoid neon/cyberpunk styles; stick to the warm rust/amber accent.",
+    "For the Timer screen, the Subject Selector must be visually prominent before the timer starts.",
+    "When applying images (like the home header bg or empty state), use the mandatory vertical linear-gradient scrim (top-to-bottom transparent to surfaceInverse or surface) to ensure text readability.",
+    "Use react-native-gifted-charts for Statistics and ensure the chart styling matches the minimal dark theme (hide grid lines, use brandPrimary for bars).",
+    "Wire haptics to all key interactions as specified in the haptics block."
+  ]
+}
